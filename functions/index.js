@@ -6,13 +6,88 @@ const functions = require('firebase-functions');
 // exports.helloWorld = functions.https.onRequest((request, response) => {
 //  response.send("Hello from Firebase!");
 // });
-
+// {
+//   projectId: 'new-app-233e1',
+//   clientEmail: 'firebase-adminsdk-7tbcd@new-app-233e1.iam.gserviceaccount.com',
+//   privateKey: '-----BEGIN PRIVATE // }
 // The Firebase Admin SDK to access the Firebase Realtime Database.
 const admin = require('firebase-admin');
-admin.initializeApp(functions.config().firebase);
-const db = admin.firestore();
+const serviceAccount = require("./new-app-233e1-firebase-adminsdk-7tbcd-a2348dcce9.json");
+
+admin.initializeApp({
+  credential: admin.credential.cert(serviceAccount),
+  databaseURL: "https://new-app-233e1.firebaseio.com"
+});
+
+var db = admin.firestore();
 // Take the text parameter passed to this HTTP endpoint and insert it into the
 // Realtime Database under the path /messages/:pushId/original
+
+exports.parseUser = (req, res) => {
+  res.status(200).send('The user is signed up.');
+}
+
+// switch (req.get('content-type')) {
+//   // '{"name":"John"}'
+//   case 'application/json':
+//     user_body = req.body;
+//     break;
+//
+//   // 'John', stored in a Buffer
+//   case 'application/octet-stream':
+//     user_body = req.body; // Convert buffer to a string
+//     break;
+//
+//   // 'John'
+//   case 'text/plain':
+//     user_body = req.body;
+//     break;
+//
+//   // 'name=John' in the body of a POST request (not the URL)
+//   case 'application/x-www-form-urlencoded':
+//     user_body = req.body;
+//     break;
+// }
+// let user = admin.firestore().collection('user').add({
+//   name: req.body.name,
+//   username: req.body.username,
+//   password: req.body.password
+// }).then(ref => {
+//   console.log('Added document with ID: ', ref.id);
+//   return null;
+// })
+// .catch(err => {
+//   console.log('Error getting document', err);
+// });
+
+
+function addDocumentToDatabase(collection, data) {
+  var documentRef = admin.firestore().collection(collection).add(data).then(ref => {
+    console.log('DATABASE CHANGE: ', 'document: ' + ref.id + ' , collection: ' + collection);
+    return ref;
+  });
+  return documentRef;
+}
+
+exports.signUpUser = functions.https.onRequest((req, res) => {
+
+  var data = {
+    name: req.body.name,
+    username: req.body.username,
+    password: req.body.password,
+    social: {
+      followers: {
+        values: []
+      }
+    }
+  };
+  var user = admin.firestore().collection('user').add(data).then(ref => {
+    console.log('DATABASE CHANGE: ', 'document: ' + ref.id + ' , collection: ' + 'user');
+    res.status(200).send('The user is signed up.');
+    return null;
+  });
+});
+
 exports.addMessage = functions.https.onRequest((req, res) => {
   // Grab the text parameter.
   const original = req.query.text;
