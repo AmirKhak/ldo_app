@@ -1,5 +1,5 @@
 const functions = require('firebase-functions');
-
+const firebase = require('firebase');
 // // Create and Deploy Your First Cloud Functions
 // // https://firebase.google.com/docs/functions/write-firebase-functions
 //
@@ -20,6 +20,9 @@ admin.initializeApp({
 });
 
 var db = admin.firestore();
+const settings = {/* your settings... */ timestampsInSnapshots: true};
+admin.firestore().settings(settings);
+
 // Take the text parameter passed to this HTTP endpoint and insert it into the
 // Realtime Database under the path /messages/:pushId/original
 
@@ -69,6 +72,65 @@ function addDocumentToDatabase(collection, data) {
   return documentRef;
 }
 
+exports.getAllExperiences = functions.https.onCall((data, context) => {
+  if (!context.auth) {
+    // Throwing an HttpsError so that the client gets the error details.
+    console.log('User not authenticated!');
+    throw new functions.https.HttpsError('failed-precondition', 'The function must be called ' +
+      'while authenticated.');
+  } else {
+    console.log('User is authenticated!');
+    // ...
+
+    // Authentication / user information is automatically added to the request.
+    const uid = context.auth.uid;
+    const name = context.auth.token.name || null;
+    const picture = context.auth.token.picture || null;
+    const email = context.auth.token.email || null;
+
+
+    return admin.firestore().collection('experiences').get().then(snapshot => {
+      var experiences = [];
+      snapshot.forEach(doc => {
+        console.log(doc.data());
+        experiences.push(doc.data());
+      });
+      console.log('All experiences fetched successfully!');
+      return {experiences: experiences};
+    });
+  }
+});
+
+exports.addExperience = functions.https.onCall((data, context) => {
+  if (!context.auth) {
+    // Throwing an HttpsError so that the client gets the error details.
+    console.log('User not authenticated!');
+    throw new functions.https.HttpsError('failed-precondition', 'The function must be called ' +
+      'while authenticated.');
+  } else {
+    console.log('User is authenticated!');
+    // ...
+    const text = data.text;
+
+    // Authentication / user information is automatically added to the request.
+    const uid = context.auth.uid;
+    const name = context.auth.token.name || null;
+    const picture = context.auth.token.picture || null;
+    const email = context.auth.token.email || null;
+    var experience = {
+      user_name: name,
+      user_id: uid,
+      title: data.title,
+      description: data.description
+    }
+
+    return admin.firestore().collection('experiences').add(experience).then(ref => {
+      console.log('DATABASE CHANGE: ', 'document: ' + ref.id + ' , collection: ' + 'experiences');
+      return {message: "Experience successfully added!"};
+    });
+  }
+});
+
 exports.signUpUser = functions.https.onRequest((req, res) => {
 
   var data = {
@@ -81,6 +143,7 @@ exports.signUpUser = functions.https.onRequest((req, res) => {
       }
     }
   };
+
   var user = admin.firestore().collection('user').add(data).then(ref => {
     console.log('DATABASE CHANGE: ', 'document: ' + ref.id + ' , collection: ' + 'user');
     res.status(200).send('The user is signed up.');
