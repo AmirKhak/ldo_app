@@ -18,6 +18,7 @@
   var functions = firebase.functions();
   var addExperience = firebase.functions().httpsCallable('addExperience');
   var getAllExperiences = firebase.functions().httpsCallable('getAllExperiences');
+  var getMyExperiences = firebase.functions().httpsCallable('getMyExperiences');
 </script>
 <script src="https://cdn.firebase.com/libs/firebaseui/3.1.1/firebaseui.js"></script>
 <link type="text/css" rel="stylesheet" href="https://cdn.firebase.com/libs/firebaseui/3.1.1/firebaseui.css" />
@@ -91,21 +92,42 @@
     if (user) {
       getAllExperiences()
       .then(function(result) {
-        var res = "";
-        var experience;
-        for (experience in result.data.experiences) {
-          res = res + "<strong>User's Name: </strong>" + experience.user_name +
-            "<br>" + "<strong>Title: </strong>" + experience.title + "<br>" +
-            "<strong>Description: </strong>" + experience.description + "<br>" +
-            "<br>";
-        }
-        document.getElementById('get_experiences_result').innerHTML = result.data.experiences[0];
+        document.getElementById('get_experiences_result').innerHTML =
+          constructExperiences(result.data.experiences);
       }).catch(function(error) {
         document.getElementById('get_experiences_result').innerHTML = error.message;
       });
     } else {
       confirm("Sorry, you should sign in first.");
     }
+  }
+  function getCurrentUserExperiences() {
+    var user = firebase.auth().currentUser;
+    if (user) {
+      getMyExperiences()
+      .then(function(result) {
+        document.getElementById('get_my_experiences_result').innerHTML =
+          constructExperiences(result.data.experiences);
+      }).catch(function(error) {
+        document.getElementById('get_my_experiences_result').innerHTML = error.message;
+      });
+    } else {
+      confirm("Sorry, you should sign in first.");
+    }
+  }
+  function constructExperiences(experiences) {
+    var res = "";
+    var i;
+    if (experiences.length == 0) {
+      res = "No Experiences";
+    }
+    for (i = 0; i < experiences.length; i++) {
+      res = res + "<strong>User's Name: </strong>" + experiences[i][2] +
+        "<br>" + "<strong>Title: </strong>" + experiences[i][0] + "<br>" +
+        "<strong>Description: </strong>" + experiences[i][1] + "<br>" +
+        "<br>";
+    }
+    return res;
   }
 </script>
 
@@ -133,6 +155,11 @@
 <h2>Get All Experiences</h2>
 <button onclick="getExperiences()">Get Experiences</button>
 <p id="get_experiences_result"></p>
+<br>
+<h2>Get My Experiences</h2>
+<button onclick="getCurrentUserExperiences()">Get My Experiences</button>
+<p id="get_my_experiences_result"></p>
+<br>
 <script>
   function set_authentication_status() {
     if (firebase.auth().currentUser) {

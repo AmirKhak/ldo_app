@@ -72,6 +72,36 @@ function addDocumentToDatabase(collection, data) {
   return documentRef;
 }
 
+exports.getMyExperiences = functions.https.onCall((data, context) => {
+  if (!context.auth) {
+    // Throwing an HttpsError so that the client gets the error details.
+    console.log('User not authenticated!');
+    throw new functions.https.HttpsError('failed-precondition', 'The function must be called ' +
+      'while authenticated.');
+  } else {
+    console.log('User is authenticated!');
+    // Authentication / user information is automatically added to the request.
+    const uid = context.auth.uid;
+    const name = context.auth.token.name || null;
+    const picture = context.auth.token.picture || null;
+    const email = context.auth.token.email || null;
+
+    return admin.firestore().collection('experiences').where('user_id', '==', uid)
+      .get().then(snapshot => {
+        var experiences = [];
+        snapshot.forEach(doc => {
+          let experience = [doc.data().title, doc.data().description, doc.data().user_name];
+          console.log(experience);
+          experiences.push(experience);
+        });
+        console.log('All experiences fetched successfully!');
+        return {experiences: experiences};
+      }).catch(err => {
+        console.log('Error getting documents', err);
+      });
+  }
+});
+
 exports.getAllExperiences = functions.https.onCall((data, context) => {
   if (!context.auth) {
     // Throwing an HttpsError so that the client gets the error details.
@@ -92,11 +122,15 @@ exports.getAllExperiences = functions.https.onCall((data, context) => {
     return admin.firestore().collection('experiences').get().then(snapshot => {
       var experiences = [];
       snapshot.forEach(doc => {
-        console.log(doc.data());
-        experiences.push(doc.data());
+        let experience = [doc.data().title, doc.data().description, doc.data().user_name];
+        console.log(experience);
+        experiences.push(experience);
       });
       console.log('All experiences fetched successfully!');
       return {experiences: experiences};
+    }).catch(
+    err => {
+      console.log('Error getting documents', err);
     });
   }
 });
