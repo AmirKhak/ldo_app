@@ -1,22 +1,12 @@
 const functions = require('firebase-functions');
 const firebase = require('firebase');
-// // Create and Deploy Your First Cloud Functions
-// // https://firebase.google.com/docs/functions/write-firebase-functions
-//
-// exports.helloWorld = functions.https.onRequest((request, response) => {
-//  response.send("Hello from Firebase!");
-// });
-// {
-//   projectId: 'new-app-233e1',
-//   clientEmail: 'firebase-adminsdk-7tbcd@new-app-233e1.iam.gserviceaccount.com',
-//   privateKey: '-----BEGIN PRIVATE // }
-// The Firebase Admin SDK to access the Firebase Realtime Database.
+
 const admin = require('firebase-admin');
-const serviceAccount = require("./new-app-233e1-firebase-adminsdk-7tbcd-a2348dcce9.json");
+const serviceAccount = require("./letsdayout-9783f-firebase-adminsdk-l8d0p-a4145c1100.json");
 
 admin.initializeApp({
   credential: admin.credential.cert(serviceAccount),
-  databaseURL: "https://new-app-233e1.firebaseio.com"
+  databaseURL: "https://letsdayout-9783f.firebaseio.com"
 });
 
 var db = admin.firestore();
@@ -29,40 +19,6 @@ admin.firestore().settings(settings);
 exports.parseUser = (req, res) => {
   res.status(200).send('The user is signed up.');
 }
-
-// switch (req.get('content-type')) {
-//   // '{"name":"John"}'
-//   case 'application/json':
-//     user_body = req.body;
-//     break;
-//
-//   // 'John', stored in a Buffer
-//   case 'application/octet-stream':
-//     user_body = req.body; // Convert buffer to a string
-//     break;
-//
-//   // 'John'
-//   case 'text/plain':
-//     user_body = req.body;
-//     break;
-//
-//   // 'name=John' in the body of a POST request (not the URL)
-//   case 'application/x-www-form-urlencoded':
-//     user_body = req.body;
-//     break;
-// }
-// let user = admin.firestore().collection('user').add({
-//   name: req.body.name,
-//   username: req.body.username,
-//   password: req.body.password
-// }).then(ref => {
-//   console.log('Added document with ID: ', ref.id);
-//   return null;
-// })
-// .catch(err => {
-//   console.log('Error getting document', err);
-// });
-
 
 function addDocumentToDatabase(collection, data) {
   var documentRef = admin.firestore().collection(collection).add(data).then(ref => {
@@ -109,7 +65,7 @@ exports.getAllExperiences = functions.https.onCall((data, context) => {
     throw new functions.https.HttpsError('failed-precondition', 'The function must be called ' +
       'while authenticated.');
   } else {
-    console.log('User is authenticated!');
+    console.log('User is authenticated: ' + context.auth);
     // ...
 
     // Authentication / user information is automatically added to the request.

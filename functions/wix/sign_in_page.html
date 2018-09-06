@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html>
+  <body>
+    <script src="https://www.gstatic.com/firebasejs/5.3.1/firebase.js"></script>
+    <script>
+      initializeFirebase();
+      function initializeFirebase() {
+        var config = {
+          apiKey: "AIzaSyCytiqYnDLL33YtLY9YfY6XODug-lITPt4",
+          authDomain: "letsdayout-9783f.firebaseapp.com",
+          databaseURL: "https://letsdayout-9783f.firebaseio.com",
+          projectId: "letsdayout-9783f",
+          storageBucket: "letsdayout-9783f.appspot.com",
+          messagingSenderId: "438112567124"
+        };
+        firebase.initializeApp(config);
+      }
+
+      window.onmessage = (event) => {
+        if (event.data) {
+          console.log(`HTML Component received a message: ${event.data}`);
+          analyseMessage(event.data);
+        }
+      }
+
+      function sendMessage(message) {
+        window.parent.postMessage(message, "*");
+        //topText(message[1]);
+      }
+
+      function signInUser(message) {
+        let result = ["sign-in", "SUCCESS"];
+        let errorMessage = null;
+
+        firebase.auth().signInWithEmailAndPassword(message[1], message[2]).catch(function(error) {
+          var errorCode = error.code;
+          errorMessage = error.message;
+          result = ["sign-in", errorMessage];
+        });
+
+        var firebaseInterval = setInterval(function() {
+          if (isUserAuthenticated() || errorMessage !== null) {
+            sendMessage(result);
+            clearInterval(firebaseInterval);
+          }
+        }, 100);
+      }
+
+      function isUserAuthenticated() {
+        return getCurrentUser() !== null;
+      }
+
+      function signOutUser() {
+        if (isUserAuthenticated()) {
+          firebase.auth().signOut();
+          sendMessage(['sign-out', "User " + user.displayName + " has successfully signed out."]);
+        } else {
+          sendMessage(['sign-out', "No user to sign out."]);
+        }
+      }
+
+      function analyseMessage(message) {
+        let request = (typeof message === "object") ? message[0] : message;
+        switch (request) {
+          case "sign-in":
+            signInUser(message);
+            break;
+          case "ready":
+            ready();
+            break;
+        }
+      }
+
+      function getCurrentUser() {
+        return firebase.auth().currentUser;
+      }
+
+      function ready() {
+
+      }
+    </script>
+
+    <!-- HTML SPECIFIC CODE: -->
+<!--
+    <script>
+
+      function topText(message) {
+        document.getElementById("result_of_button").innerHTML = message;
+      }
+
+      function authentication_status() {
+        let user = firebase.auth().currentUser;
+        if (user) {
+          topText("User " + user.displayName + " is authenticated.");
+        } else {
+          topText("User is not authenticated.");
+        }
+      }
+
+      function signInForm() {
+        let form = document.getElementById('sign_in_form');
+        let message = ["sign-in", form.email.value, form.password.value];
+        analyseMessage(message);
+      }
+
+    </script>
+    <h1>Sign In</h1>
+    <p id="result_of_button"></p>
+    <form id="sign_in_form">
+      <br>
+      <input type="text" name="email" value="Email">
+      <br>
+      <br>
+      <input type="text" name="password" value="Password">
+      <br>
+      <br>
+    </form>
+    <button onclick="signInForm()">Sign In</button>
+    <button onclick="authentication_status()">Authentication Status</button>
+    <button onclick="signOutUser()">Sign Out</button> -->
+  </body>
+</html>

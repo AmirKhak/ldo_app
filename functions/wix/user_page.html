@@ -1,0 +1,234 @@
+<!DOCTYPE html>
+<html>
+  <body>
+    <script src="https://www.gstatic.com/firebasejs/5.3.1/firebase.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/5.3.0/firebase-functions.js"></script>
+    <script>
+      var addExperience;
+      var getMyExperiences;
+      var getAllExperiences;
+      initializeFirebase();
+      initializeFirebaseFunctions();
+      function initializeFirebase() {
+        var config = {
+          apiKey: "AIzaSyCytiqYnDLL33YtLY9YfY6XODug-lITPt4",
+          authDomain: "letsdayout-9783f.firebaseapp.com",
+          databaseURL: "https://letsdayout-9783f.firebaseio.com",
+          projectId: "letsdayout-9783f",
+          storageBucket: "letsdayout-9783f.appspot.com",
+          messagingSenderId: "438112567124"
+        };
+        firebase.initializeApp(config);
+      }
+
+      function initializeFirebaseFunctions() {
+        var functions = firebase.functions();
+        addExperience = firebase.functions().httpsCallable('addExperience');
+        getAllExperiences = firebase.functions().httpsCallable('getAllExperiences');
+        getMyExperiences = firebase.functions().httpsCallable('getMyExperiences');
+      }
+
+      window.onmessage = (event) => {
+        if (event.data) {
+          console.log(`HTML Component received a message: ${event.data}`);
+          analyseMessage(event.data);
+        }
+      }
+
+      function sendMessage(message) {
+        //Notice: on html-only environment line below may produce wrong values,
+        // but in wix environment it works fine.
+        window.parent.postMessage(message, "*");
+        //topText(message[1]);
+      }
+
+      function signOutUser() {
+        let user = getCurrentUser();
+        if (getCurrentUser()) {
+          firebase.auth().signOut();
+          sendMessage(['sign-out', "User " + user.displayName + " has successfully signed out."]);
+        } else {
+          sendMessage(['sign-out', "No user to sign out."]);
+        }
+      }
+
+      function signInUser(message) {
+        let result = ["sign-in", "SUCCESS"];
+        let errorMessage = null;
+
+        firebase.auth().signInWithEmailAndPassword(message[1], message[2]).catch(function(error) {
+          var errorCode = error.code;
+          errorMessage = error.message;
+          result = ["sign-in", errorMessage];
+        });
+
+        var firebaseInterval = setInterval(function() {
+          if (isUserAuthenticated() || errorMessage !== null) {
+            sendMessage(result);
+            clearInterval(firebaseInterval);
+          }
+        }, 100);
+      }
+
+      function addAnExperience(message) {
+        if (isUserAuthenticated()) {
+          var data = {
+            title: message[1],
+            description: message[2]
+          };
+          addExperience(data).then(function(result) {
+            sendMessage(["add-experience", "SUCCESS", result.data.message]) ;
+          }).catch(function(error) {
+            sendMessage(["add-experience", error.message]);
+          });
+        } else {
+          sendMessage(["add-experience", "The user is not authenticated."]);
+        }
+      }
+
+      function getAllExperiencesInDB(message) {
+        if (isUserAuthenticated()) {
+          getAllExperiences().then(function(result) {
+            sendMessage(["get-all-experiences", "SUCCESS", result.data.experiences]);
+          }).catch(function(error) {
+            sendMessage("get-all-experiences", error.message);
+          });
+        } else {
+          sendMessage(["get-all-experiences", "The user is not authenticated."]);
+        }
+      }
+
+      function getUserExperiences(message) {
+        if (isUserAuthenticated()) {
+          getMyExperiences().then(function(result) {
+            sendMessage(["get-user-experiences", "SUCCESS", result.data.experiences]);
+          }).catch(function(error) {
+            sendMessage(["get-user-experiences", error.message]);
+          });
+        } else {
+          sendMessage(["get-user-experiences", "The user is not authenticated."]);
+        }
+      }
+
+      function isUserAuthenticated() {
+        return getCurrentUser() !== null;
+      }
+
+      function analyseMessage(message) {
+        let request = (typeof message === "object") ? message[0] : message;
+        switch (request) {
+          case "sign-in":
+            signInUser(message);
+            break;
+          case "add-experience":
+            addAnExperience(message);
+            break;
+          case "get-all-experiences":
+            getAllExperiencesInDB(message);
+            break;
+          case "get-user-experiences":
+            getUserExperiences(message);
+            break;
+          case "ready":
+            ready(message);
+            break;
+        }
+      }
+
+      function getCurrentUser() {
+        return firebase.auth().currentUser;
+      }
+
+    </script>
+
+    <!-- HTML SPECIFIC CODE: -->
+
+    <!-- <script>
+
+      function topText(message) {
+        document.getElementById("result_of_button").innerHTML = message;
+      }
+
+      function authentication_status() {
+        let user = getCurrentUser();
+        if (user) {
+          topText("User " + user.displayName + " is authenticated.");
+        } else {
+          topText("User is not authenticated.");
+        }
+      }
+
+      function signInForm() {
+        let form = document.getElementById('sign_in_form');
+        let message = ["sign-in", form.email.value, form.password.value];
+        analyseMessage(message);
+      }
+
+      function toAddExperience() {
+        var form = document.getElementById("add_experience_form");
+        let message = ["add-experience", form.title.value, form.description.value];
+        analyseMessage(message);
+      }
+
+      function getExperiences() {
+        let message = ["get-all-experiences"];
+        analyseMessage(message);
+      }
+
+      function getCurrentUserExperiences() {
+        let message = ["get-user-experiences"];
+        analyseMessage(message);
+      }
+
+      function constructExperiences(experiences) {
+        var res = "";
+        var i;
+        if (experiences.length == 0) {
+          res = "No Experiences";
+        }
+        for (i = 0; i < experiences.length; i++) {
+          res = res + "<strong>User's Name: </strong>" + experiences[i][2] +
+            "<br>" + "<strong>Title: </strong>" + experiences[i][0] + "<br>" +
+            "<strong>Description: </strong>" + experiences[i][1] + "<br>" +
+            "<br>";
+        }
+        return res;
+      }
+
+    </script>
+
+    <h1>User Page</h1>
+    <p id="result_of_button"></p>
+    <h2>Sign In</h2>
+    <form id="sign_in_form">
+      <br>
+      <input type="text" name="email" value="Email">
+      <br>
+      <br>
+      <input type="text" name="password" value="Password">
+      <br>
+      <br>
+    </form>
+    <button onclick="signInForm()">Sign In</button>
+    <button onclick="authentication_status()">Authentication Status</button>
+    <button onclick="signOutUser()">Sign Out</button>
+    <br>
+    <h2>Add Experience</h2>
+    <form id="add_experience_form">
+      <br>
+      <input type="text" name="title" value="Title">
+      <br>
+      <br>
+      <input type="text" name="description" value="Description">
+      <br>
+      <br>
+    </form>
+    <button onclick="toAddExperience()">Add Experience</button>
+    <br>
+    <h2>My Experiences</h2>
+    <button onclick="getCurrentUserExperiences()">Get My Experiences</button>
+    <br>
+    <h2>All Experiences</h2>
+    <button onclick="getExperiences()">Get All Experiences</button> -->
+  </body>
+</html>
