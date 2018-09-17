@@ -35,11 +35,13 @@
         }
       }
 
+
+
       function sendMessage(message) {
         //Notice: on html-only environment line below may produce wrong values,
         // but in wix environment it works fine.
         window.parent.postMessage(message, "*");
-        //topText(message[1]);
+        topText(message[1]);
       }
 
       function signOutUser() {
@@ -143,7 +145,7 @@
 
     <!-- HTML SPECIFIC CODE: -->
 
-    <!-- <script>
+    <script>
 
       function topText(message) {
         document.getElementById("result_of_button").innerHTML = message;
@@ -156,6 +158,26 @@
         } else {
           topText("User is not authenticated.");
         }
+      }
+
+      function httpGetAsync(theUrl) {
+        var xmlHttp = new XMLHttpRequest();
+        topText(theUrl);
+        xmlHttp.open("GET", theUrl, true); // true for asynchronous
+        xmlHttp.send();
+                let i = 0;
+                res = "";
+        xmlHttp.onreadystatechange = function () {
+            if (xmlHttp.readyState === 4) {
+              i++;
+            }
+            topText(i);
+        }
+      }
+
+      function getUrlResponse() {
+        let form = document.getElementById('get_http_url_form');
+        httpGetAsync(form.url.value);
       }
 
       function signInForm() {
@@ -199,6 +221,17 @@
 
     <h1>User Page</h1>
     <p id="result_of_button"></p>
+    <h2>Get request</h2>
+    <form id="get_http_url_form">
+      <br>
+      <input type="text" name="url" value="Url">
+      <br>
+      <br>
+      <input type="text" name="input" value="Input">
+      <br>
+      <br>
+    </form>
+    <button onclick="getUrlResponse()">Send</button>
     <h2>Sign In</h2>
     <form id="sign_in_form">
       <br>
@@ -229,6 +262,6 @@
     <button onclick="getCurrentUserExperiences()">Get My Experiences</button>
     <br>
     <h2>All Experiences</h2>
-    <button onclick="getExperiences()">Get All Experiences</button> -->
+    <button onclick="getExperiences()">Get All Experiences</button>
   </body>
 </html>

@@ -14,6 +14,7 @@
           messagingSenderId: "438112567124"
         };
         firebase.initializeApp(config);
+        sendMessage(['ready']);
       }
 
       window.onmessage = (event) => {
@@ -25,33 +26,12 @@
 
       function sendMessage(message) {
         window.parent.postMessage(message, "*");
-        //topText(message[1]);
-      }
-
-      function signInUser(message) {
-        let result = ["sign-in", "SUCCESS"];
-        let errorMessage = null;
-
-        firebase.auth().signInWithEmailAndPassword(message[1], message[2]).catch(function(error) {
-          var errorCode = error.code;
-          errorMessage = error.message;
-          result = ["sign-in", errorMessage];
-        });
-
-        var firebaseInterval = setInterval(function() {
-          if (isUserAuthenticated() || errorMessage !== null) {
-            sendMessage(result);
-            clearInterval(firebaseInterval);
-          }
-        }, 100);
-      }
-
-      function isUserAuthenticated() {
-        return getCurrentUser() !== null;
+        topText(message[1]);
       }
 
       function signOutUser() {
-        if (isUserAuthenticated()) {
+        let user = getCurrentUser();
+        if (getCurrentUser()) {
           firebase.auth().signOut();
           sendMessage(['sign-out', "User " + user.displayName + " has successfully signed out."]);
         } else {
@@ -59,14 +39,59 @@
         }
       }
 
+      function signUpUser(message) {
+        let errorMessage = null;
+
+        firebase.auth().createUserWithEmailAndPassword(message[1], message[2]).catch(function(error) {
+          var errorCode = error.code;
+          errorMessage = error.message;
+        });
+
+        var firebaseInterval = setInterval(function() {
+          if (errorMessage !== null) {
+            sendMessage([message[0], errorMessage]);
+            clearInterval(firebaseInterval);
+          }
+          if (isUserAuthenticated()) {
+            updateCurrentUserProfile(message[0], {displayName: message[3]});
+            clearInterval(firebaseInterval);
+          }
+        }, 100);
+      }
+
+      function updateCurrentUserProfile(request, data) {
+        let user = getCurrentUser();
+        if (user) {
+          user.updateProfile(data).then(function() {
+            sendMessage([request, "SUCCESS"]);
+          }).catch(function(error) {
+            sendMessage(error.message);
+          });
+        } else {
+          sendMessage([request, "No current user."]);
+        }
+      }
+
+      function ready(message) {
+        switch (message[1]) {
+          case "sign-up":
+            sendMessage(["ready", "sign-out"]);
+            break;
+          case "sign-out":
+            signOutUser();
+            sendMessage(["ready", "sign-up"]);
+            break;
+        }
+      }
+
       function analyseMessage(message) {
         let request = (typeof message === "object") ? message[0] : message;
         switch (request) {
-          case "sign-in":
-            signInUser(message);
+          case "sign-up":
+            signUpUser(message);
             break;
           case "ready":
-            ready();
+            isReady();
             break;
         }
       }
@@ -75,13 +100,13 @@
         return firebase.auth().currentUser;
       }
 
-      function ready() {
-
+      function isUserAuthenticated() {
+        return getCurrentUser() !== null;
       }
     </script>
 
-    <!-- HTML SPECIFIC CODE: -->
-<!--
+<!-- HTML SPECIFIC CODE: -->
+
     <script>
 
       function topText(message) {
@@ -89,24 +114,29 @@
       }
 
       function authentication_status() {
-        let user = firebase.auth().currentUser;
+        let user = getCurrentUser();
         if (user) {
           topText("User " + user.displayName + " is authenticated.");
         } else {
-          topText("User is not authenticated.");
+          topText("No user authenticated.");
         }
       }
 
-      function signInForm() {
-        let form = document.getElementById('sign_in_form');
-        let message = ["sign-in", form.email.value, form.password.value];
+      function signUpForm() {
+        let form = document.getElementById('sign_up_form');
+        let message = ["sign-up", form.email.value, form.password.value,
+          form.name.value];
         analyseMessage(message);
       }
 
     </script>
-    <h1>Sign In</h1>
+
+    <h1>Create an account</h1>
     <p id="result_of_button"></p>
-    <form id="sign_in_form">
+    <form id="sign_up_form">
+      <br>
+      <input type="text" name="name" value="Name">
+      <br>
       <br>
       <input type="text" name="email" value="Email">
       <br>
@@ -115,8 +145,9 @@
       <br>
       <br>
     </form>
-    <button onclick="signInForm()">Sign In</button>
+    <button onclick="signUpForm()">Sign Up</button>
     <button onclick="authentication_status()">Authentication Status</button>
-    <button onclick="signOutUser()">Sign Out</button> -->
+    <button onclick="signOutUser()">Sign Out</button>
+
   </body>
 </html>

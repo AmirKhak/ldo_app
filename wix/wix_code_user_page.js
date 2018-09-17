@@ -58,6 +58,9 @@ $w.onReady(function () {
 
   function analyseMessage (message) {
     switch (message[0]) {
+      case "ready":
+  	    handleReady(message);
+        break;
       case "sign-in":
   	    handleSignIn(message);
         break;
@@ -120,6 +123,11 @@ $w.onReady(function () {
     sendMessage(message);
   }
 
+  function handleReady() {
+    get('experiencesText').text = "Fetching data";
+    sendMessage('get-user-experiences');
+  }
+
   //END OF FUNCTION AREA
 
   get('collapseBtn').onClick((event, $w) => {
@@ -157,7 +165,7 @@ $w.onReady(function () {
     sendMessage(['sign-in', user.email, user.password]);
   }
 
-  sendMessage('get-user-experiences');
   collapseAddForm();
+  $w('#text120').text = "Session status: \n" + "Email: " + user.email + "\n" + user.password;
 
 })

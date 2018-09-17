@@ -20,6 +20,21 @@ $w.onReady(function () {
 	  $w('#text116').text = message;
   }
 
+  function analyseMessage (message) {
+    switch (message[0]) {
+      case "ready":
+        handleReady(message);
+        break;
+      case "sign-out":
+        handleSignOut(message);
+        break;
+    }
+  }
+
+  function handleReady() {
+    sendMessage('sign-out');
+  }
+
   function handleSignOut(message) {
     switch (message[1]) {
       case "SUCCESS":

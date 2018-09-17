@@ -28,6 +28,203 @@ function addDocumentToDatabase(collection, data) {
   return documentRef;
 }
 
+exports.addAccount = functions.https.onCall((data, context) => {
+  if (!context.auth) {
+    // Throwing an HttpsError so that the client gets the error details.
+    console.log('User not authenticated!');
+    throw new functions.https.HttpsError('failed-precondition', 'The function must be called ' +
+      'while authenticated.');
+  } else {
+    var account = {
+      uid: context.auth.uid,
+      profile: {
+        name: context.auth.token.name || null,
+        picture: context.auth.token.picture || null,
+        email: context.auth.token.email || null,
+        city: context.auth.token.city || null,
+        address: context.auth.token.address || null,
+        phone: context.auth.token.phone || null
+      },
+      bank_detail: {
+        holder_name: context.auth.token.holder_name || null,
+        sort_code: context.auth.token.sort_code || null,
+        account_number: context.auth.token.account_number || null
+      }
+    };
+    return admin.firestore().collection('accounts').add(account).then(ref => {
+      console.log('DATABASE CHANGE: ', 'document: ' + ref.id
+        + ' , added to collection: accounts');
+      return {message: "Account successfully added!"};
+    });
+  }
+});
+
+exports.addAttendee = functions.https.onCall((data, context) => {
+  if (!context.auth) {
+    // Throwing an HttpsError so that the client gets the error details.
+    console.log('User not authenticated!');
+    throw new functions.https.HttpsError('failed-precondition', 'The function must be called ' +
+      'while authenticated.');
+  } else {
+    var attendee = {
+      uid: context.auth.uid,
+      eid: context.auth.token.eid || null,
+      name: context.auth.token.name || null,
+      photo: context.auth.token.photo || null,
+      phone: context.auth.token.phone || null,
+      email: context.auth.token.email || null
+    };
+    return admin.firestore().collection('attendees').add(attendee).then(ref => {
+      console.log('DATABASE CHANGE: ', 'document: ' + ref.id
+        + ' , added to collection: attendees');
+      return {message: "Attendee successfully added!"};
+    });
+  }
+});
+
+exports.addEvent = functions.https.onCall((data, context) => {
+  if (!context.auth) {
+    // Throwing an HttpsError so that the client gets the error details.
+    console.log('User not authenticated!');
+    throw new functions.https.HttpsError('failed-precondition', 'The function must be called ' +
+      'while authenticated.');
+  } else {
+    var event = {
+      uid: context.auth.uid,
+      event_details: {
+        location: context.auth.token.holder_name || null,
+        name: context.auth.token.holder_name || null,
+        age_restriction: context.auth.token.holder_name || null,
+        description: context.auth.token.holder_name || null,
+        categories: context.auth.token.holder_name || null,
+        photos: context.auth.token.holder_name || null,
+        youtube_links: context.auth.token.holder_name || null,
+        dates: context.auth.token.holder_name || null
+      },
+      bank_detail: {
+        holder_name: context.auth.token.holder_name || null,
+        sort_code: context.auth.token.sort_code || null,
+        account_number: context.auth.token.account_number || null
+      },
+      host: {
+        name: context.auth.token.name || null,
+        email: context.auth.token.email || null,
+        city: context.auth.token.city || null,
+        address: context.auth.token.address || null,
+        phone: context.auth.token.phone || null
+      },
+      ticketing: {
+        max_num: context.auth.token.max_num || null,
+        require_guest_name_phone: context.auth.token.require_guest_name_phone
+          || null,
+        tickets: context.auth.token.tickets || null
+      }
+    };
+    return admin.firestore().collection('events').add(event).then(ref => {
+      console.log('DATABASE CHANGE: ', 'document: ' + ref.id
+        + ' , added to collection: events');
+      return {message: "Event successfully added!"};
+    });
+  }
+});
+
+exports.getUserEvent = functions.https.onCall((data, context) => {
+  if (!context.auth) {
+    // Throwing an HttpsError so that the client gets the error details.
+    console.log('User not authenticated!');
+    throw new functions.https.HttpsError('failed-precondition', 'The function must be called ' +
+      'while authenticated.');
+  } else {
+    const uid = context.auth.uid;
+    return admin.firestore().collection('events').where('uid', '==', uid)
+      .get().then(snapshot => {
+        var events = [];
+        snapshot.forEach(doc => {
+          let event = JSON.stringify(doc.data());
+          console.log(event);
+          events.push(event);
+        });
+        console.log('All events fetched successfully!');
+        return {events: events};
+      }).catch(err => {
+        console.log('Error getting documents', err);
+      });
+  }
+});
+
+exports.getUserAccount = functions.https.onCall((data, context) => {
+  if (!context.auth) {
+    // Throwing an HttpsError so that the client gets the error details.
+    console.log('User not authenticated!');
+    throw new functions.https.HttpsError('failed-precondition', 'The function must be called ' +
+      'while authenticated.');
+  } else {
+    const uid = context.auth.uid;
+    return admin.firestore().collection('account').where('uid', '==', uid)
+      .get().then(snapshot => {
+        var accounts = [];
+        snapshot.forEach(doc => {
+          let account = JSON.stringify(doc.data());
+          console.log(account);
+          accounts.push(account);
+        });
+        console.log('All accounts fetched successfully!');
+        return {accounts: accounts};
+      }).catch(err => {
+        console.log('Error getting documents', err);
+      });
+  }
+});
+
+exports.getUserAttendees = functions.https.onCall((data, context) => {
+  if (!context.auth) {
+    // Throwing an HttpsError so that the client gets the error details.
+    console.log('User not authenticated!');
+    throw new functions.https.HttpsError('failed-precondition', 'The function must be called ' +
+      'while authenticated.');
+  } else {
+    const uid = context.auth.uid;
+    return admin.firestore().collection('attendees').where('uid', '==', uid)
+      .get().then(snapshot => {
+        var attendees = [];
+        snapshot.forEach(doc => {
+          let attendee = JSON.stringify(doc.data());
+          console.log(attendee);
+          attendees.push(attendee);
+        });
+        console.log('All attendees fetched successfully!');
+        return {attendees: attendees};
+      }).catch(err => {
+        console.log('Error getting documents', err);
+      });
+  }
+});
+
+exports.getEventAttendees = functions.https.onCall((data, context) => {
+  if (!context.auth) {
+    // Throwing an HttpsError so that the client gets the error details.
+    console.log('User not authenticated!');
+    throw new functions.https.HttpsError('failed-precondition', 'The function must be called ' +
+      'while authenticated.');
+  } else {
+    const uid = context.auth.uid;
+    const eid = context.auth.token.eid;
+    return admin.firestore().collection('attendees').where('eid', '==', eid)
+      .get().then(snapshot => {
+        var attendees = [];
+        snapshot.forEach(doc => {
+          let attendee = JSON.stringify(doc.data());
+          console.log(attendee);
+          attendees.push(attendee);
+        });
+        console.log('All attendees fetched successfully!');
+        return {attendees: attendees};
+      }).catch(err => {
+        console.log('Error getting documents', err);
+      });
+  }
+});
+
 exports.getMyExperiences = functions.https.onCall((data, context) => {
   if (!context.auth) {
     // Throwing an HttpsError so that the client gets the error details.
@@ -139,6 +336,11 @@ exports.signUpUser = functions.https.onRequest((req, res) => {
     res.status(200).send('The user is signed up.');
     return null;
   });
+});
+
+exports.hello = functions.https.onRequest((req, res) => {
+  //{name: req.headers.name}
+  res.status(200).send([{name: "haya"}]);
 });
 
 exports.addMessage = functions.https.onRequest((req, res) => {

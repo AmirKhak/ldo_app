@@ -14,6 +14,7 @@
           messagingSenderId: "438112567124"
         };
         firebase.initializeApp(config);
+        sendMessage(['ready']);
       }
 
       window.onmessage = (event) => {
@@ -25,7 +26,7 @@
 
       function sendMessage(message) {
         window.parent.postMessage(message, "*");
-        //topText(message[1]);
+        topText(message[1]);
       }
 
       function isUserAuthenticated() {
@@ -69,7 +70,7 @@
     </script>
 
     <!-- HTML SPECIFIC CODE: -->
-<!--
+
     <script>
 
       function topText(message) {
@@ -90,6 +91,6 @@
     <h1>Sign Out</h1>
     <p id="result_of_button"></p>
     <button onclick="authentication_status()">Authentication Status</button>
-    <button onclick="signOutUser()">Sign Out</button> -->
+    <button onclick="signOutUser()">Sign Out</button>
   </body>
 </html>
