@@ -36,22 +36,23 @@ exports.addAccount = functions.https.onCall((data, context) => {
       'while authenticated.');
   } else {
     var account = {
-      uid: context.auth.uid,
-      profile: {
-        name: context.auth.token.name || null,
-        picture: context.auth.token.picture || null,
-        email: context.auth.token.email || null,
-        city: context.auth.token.city || null,
-        address: context.auth.token.address || null,
-        phone: context.auth.token.phone || null
+      experiences: {
+        values: context.auth.token.values || []
       },
-      bank_detail: {
-        holder_name: context.auth.token.holder_name || null,
-        sort_code: context.auth.token.sort_code || null,
-        account_number: context.auth.token.account_number || null
+      interests: context.auth.token.interests || [],
+      name: context.auth.token.name || null,
+      profilepicture: context.auth.token.profilepicture || null,
+      profiletype: context.auth.token.profiletype || 0,
+      social: {
+        followers: context.auth.token.followers || []
+      },
+      userId: context.auth.uid,
+      work: {
+        company: context.auth.token.company || null,
+        job: context.auth.token.job || null
       }
     };
-    return admin.firestore().collection('accounts').add(account).then(ref => {
+    return admin.firestore().collection('usersUAT').add(account).then(ref => {
       console.log('DATABASE CHANGE: ', 'document: ' + ref.id
         + ' , added to collection: accounts');
       return {message: "Account successfully added!"};
@@ -90,37 +91,45 @@ exports.addEvent = functions.https.onCall((data, context) => {
       'while authenticated.');
   } else {
     var event = {
-      uid: context.auth.uid,
-      event_details: {
-        location: context.auth.token.holder_name || null,
-        name: context.auth.token.holder_name || null,
-        age_restriction: context.auth.token.holder_name || null,
-        description: context.auth.token.holder_name || null,
-        categories: context.auth.token.holder_name || null,
-        photos: context.auth.token.holder_name || null,
-        youtube_links: context.auth.token.holder_name || null,
-        dates: context.auth.token.holder_name || null
+      attendees: {
+        values: context.auth.token.values || []
       },
-      bank_detail: {
-        holder_name: context.auth.token.holder_name || null,
-        sort_code: context.auth.token.sort_code || null,
-        account_number: context.auth.token.account_number || null
+      category: {
+        values: context.auth.token.categories || []
       },
+      dates: {
+        values: context.auth.token.dates || []
+      },
+      description: context.auth.token.description || null,
+      experienceID: context.auth.token.experienceID || null,
       host: {
+        address: context.auth.token.host_address || null,
         name: context.auth.token.name || null,
-        email: context.auth.token.email || null,
-        city: context.auth.token.city || null,
-        address: context.auth.token.address || null,
-        phone: context.auth.token.phone || null
+        phone: context.auth.token.phone || null,
+        postcode: context.auth.token.postcode || null,
+        web: context.auth.token.web || null,
       },
-      ticketing: {
-        max_num: context.auth.token.max_num || null,
-        require_guest_name_phone: context.auth.token.require_guest_name_phone
-          || null,
-        tickets: context.auth.token.tickets || null
-      }
+      hostid: context.auth.uid,
+      images: {
+        values: context.auth.token.images || []
+      },
+      isActive: context.auth.token.isActive || true,
+      location: {
+        address: context.auth.token.location_address || null,
+        city: context.auth.token.city || null,
+        lat: context.auth.token.lat || null,
+        long: context.auth.token.long || null,
+        postcode: context.auth.token.postcode || null
+      },
+      prices: {
+        values: context.auth.token.prices || []
+      },
+      reviews: {
+        values: context.auth.token.reviews || []
+      },
+      title: context.auth.token.title || null
     };
-    return admin.firestore().collection('events').add(event).then(ref => {
+    return admin.firestore().collection('experiencesUAT').add(event).then(ref => {
       console.log('DATABASE CHANGE: ', 'document: ' + ref.id
         + ' , added to collection: events');
       return {message: "Event successfully added!"};
@@ -338,9 +347,9 @@ exports.signUpUser = functions.https.onRequest((req, res) => {
   });
 });
 
-exports.hello = functions.https.onRequest((req, res) => {
+exports.hello = functions.https.onCall((data, context) => {
   //{name: req.headers.name}
-  res.status(200).send([{name: "haya"}]);
+  return {message: "hello World"};
 });
 
 exports.addMessage = functions.https.onRequest((req, res) => {
