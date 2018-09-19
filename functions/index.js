@@ -1,6 +1,6 @@
 const functions = require('firebase-functions');
 const firebase = require('firebase');
-
+var stripe = require("stripe")("sk_test_4eC39HqLyjWDarjtT1zdp7dc");
 const admin = require('firebase-admin');
 const serviceAccount = require("./letsdayout-9783f-firebase-adminsdk-l8d0p-a4145c1100.json");
 
@@ -27,6 +27,108 @@ function addDocumentToDatabase(collection, data) {
   });
   return documentRef;
 }
+
+exports.createCustomer = functions.https.onCall((data, context) => {
+  if (!context.auth) {
+    // Throwing an HttpsError so that the client gets the error details.
+    console.log('User not authenticated!');
+    throw new functions.https.HttpsError('failed-precondition', 'The function must be called ' +
+      'while authenticated.');
+  } else {
+    var request = {
+      description: data.description,
+      email: data.email
+    };
+    console.log(JSON.stringify(request));
+    stripe.customers.create(request,
+      function(err, customer) {
+        if (err) {
+          console.log("Failure: " + err.message);
+          return err.message;
+        }
+        if (customer) {
+          console.log("SUCCESS: Customer is added!");
+          return customer;
+        }
+        console.log("No result")
+        return request;
+    });
+  }
+});
+
+exports.createAccount = functions.https.onCall((data, context) => {
+  if (!context.auth) {
+    // Throwing an HttpsError so that the client gets the error details.
+    console.log('User not authenticated!');
+    throw new functions.https.HttpsError('failed-precondition', 'The function must be called ' +
+      'while authenticated.');
+  } else {
+    var request = {
+      type: data.type,
+      country: data.country,
+      email: data.email
+    };
+    stripe.accounts.create(request,
+      function(err, account) {
+        if (err) {
+          console.log("Failure: " + err.message);
+          return err.message;
+        }
+        if (account) {
+          console.log("SUCCESS: Account is added!");
+          return account;
+        }
+        console.log("No result")
+        return request;
+      });
+  }
+});
+
+exports.saveCharge = functions.https.onCall((data, context) => {
+  if (!context.auth) {
+    // Throwing an HttpsError so that the client gets the error details.
+    console.log('User not authenticated!');
+    throw new functions.https.HttpsError('failed-precondition', 'The function must be called ' +
+      'while authenticated.');
+  } else {
+    var charge = data.charge;
+    return admin.firestore().collection('charges').add(charge).then(ref => {
+      console.log('DATABASE CHANGE: ', 'document: ' + ref.id
+        + ' , added to collection: charges');
+      return {message: "Charge successfully saved!"};
+    });
+  }
+});
+
+exports.chargeCustomer = functions.https.onCall((data, context) => {
+  if (!context.auth) {
+    // Throwing an HttpsError so that the client gets the error details.
+    console.log('User not authenticated!');
+    throw new functions.https.HttpsError('failed-precondition', 'The function must be called ' +
+      'while authenticated.');
+  } else {
+    var request = {
+      amount: data.amount,
+      currency: data.currency,
+      source: data.source, // obtained with Stripe.js
+      description: data.description
+    };
+    stripe.charges.create(request,
+      function(err, charge) {
+        if (err) {
+          console.log("Failure: " + err.message);
+          return err.message;
+        }
+        if (charge) {
+          console.log("SUCCESS: Charge is added!");
+          return charge;
+        }
+        console.log("No result")
+        return request;
+    });
+  }
+});
+
 
 exports.addAccount = functions.https.onCall((data, context) => {
   if (!context.auth) {
@@ -375,6 +477,54 @@ exports.toUpperCaseName = functions.firestore
         }, {merge: true});
       }
       return null;
+    });
+
+
+    exports.sign_up = functions.https.onRequest((req, res) => {
+      const email = req.body.email;
+      const password = req.body.password;
+      const displayName = req.body.displayName;
+      if (!(email && password && displayName)) {
+        res.status(400).send("email or password or name: " + email + ", " +
+          password + ", " + displayName + ", " + JSON.stringify(req.body));
+        return;
+      }
+      return admin.auth().createUser({
+        email: req.body.email,
+        emailVerified: req.body.emailVerified || false,
+        phoneNumber: req.body.phoneNumber || null,
+        password: req.body.password,
+        displayName: req.body.displayName || null,
+        photoURL: req.body.photoURL || null,
+        disabled: req.body.disabled || false
+      })
+      .then(function(userRecord) {
+        // See the UserRecord reference doc for the contents of userRecord.
+        var account = {
+          experiences: {
+            values: req.body.values || []
+          },
+          interests: req.bodyinterests || [],
+          name: req.body.displayName || null,
+          profilepicture: req.body.profilepicture || null,
+          profiletype: req.body.profiletype || 0,
+          social: {
+            followers: req.body.followers || []
+          },
+          userId: userRecord.uid,
+          work: {
+            company: req.body.company || null,
+            job: req.body.job || null
+          }
+        };
+        return admin.firestore().collection('accounts').add(account).then(ref => {
+          res.status(200).send("Successfully created new user:", userRecord.uid);
+          return;
+        });
+      })
+      .catch(function(error) {
+        res.status(400).send("Error creating new user:", error);
+      });
     });
 
 

@@ -79,7 +79,7 @@
             description: message[2]
           };
           addExperience(data).then(function(result) {
-            sendMessage(["add-experience", "SUCCESS", result.data.message]) ;
+            sendMessage(["add-experience", "SUCCESS", result.data.message]);
           }).catch(function(error) {
             sendMessage(["add-experience", error.message]);
           });
