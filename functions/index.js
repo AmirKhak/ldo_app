@@ -1,6 +1,6 @@
 const functions = require('firebase-functions');
 const firebase = require('firebase');
-var stripe = require("stripe")("sk_test_4eC39HqLyjWDarjtT1zdp7dc");
+var stripe = require("stripe")("sk_test_LUw5hAJL9XpsrpKjaXj2pE9H");
 const admin = require('firebase-admin');
 const serviceAccount = require("./letsdayout-9783f-firebase-adminsdk-l8d0p-a4145c1100.json");
 
@@ -40,14 +40,14 @@ exports.createCustomer = functions.https.onCall((data, context) => {
       email: data.email
     };
     console.log(JSON.stringify(request));
-    stripe.customers.create(request,
+    return stripe.customers.create(request).then(
       function(err, customer) {
         if (err) {
           console.log("Failure: " + err.message);
           return err.message;
         }
         if (customer) {
-          console.log("SUCCESS: Customer is added!");
+          console.log("SUCCESS: Customer is added!" + JSON.stringify(customer));
           return customer;
         }
         console.log("No result")
@@ -66,7 +66,8 @@ exports.createAccount = functions.https.onCall((data, context) => {
     var request = {
       type: data.type,
       country: data.country,
-      email: data.email
+      email: data.email,
+      business_name: data.business_name
     };
     stripe.accounts.create(request,
       function(err, account) {
@@ -75,8 +76,8 @@ exports.createAccount = functions.https.onCall((data, context) => {
           return err.message;
         }
         if (account) {
-          console.log("SUCCESS: Account is added!");
-          return account;
+          console.log("SUCCESS: Account is added!" + JSON.stringify(account));
+          return JSON.stringify(account);
         }
         console.log("No result")
         return request;
@@ -107,11 +108,17 @@ exports.chargeCustomer = functions.https.onCall((data, context) => {
     throw new functions.https.HttpsError('failed-precondition', 'The function must be called ' +
       'while authenticated.');
   } else {
+
     var request = {
       amount: data.amount,
       currency: data.currency,
       source: data.source, // obtained with Stripe.js
-      description: data.description
+      description: data.description,
+      destination: {
+        amount: data.amount * (1 - data.commision) || 0,
+        account: data.account
+      },
+      receipt_email: data.receipt_email
     };
     stripe.charges.create(request,
       function(err, charge) {
@@ -120,8 +127,8 @@ exports.chargeCustomer = functions.https.onCall((data, context) => {
           return err.message;
         }
         if (charge) {
-          console.log("SUCCESS: Charge is added!");
-          return charge;
+          console.log("SUCCESS: Charge is added!" + JSON.stringify(charge));
+          return JSON.stringify(charge);
         }
         console.log("No result")
         return request;
@@ -139,22 +146,23 @@ exports.addAccount = functions.https.onCall((data, context) => {
   } else {
     var account = {
       experiences: {
-        values: context.auth.token.values || []
+        values: data.experiences.values || []
       },
-      interests: context.auth.token.interests || [],
-      name: context.auth.token.name || null,
-      profilepicture: context.auth.token.profilepicture || null,
-      profiletype: context.auth.token.profiletype || 0,
+      interests: data.interests || [],
+      name: data.name || null,
+      profilepicture: data.profilepicture || null,
+      profiletype: data.profiletype || 0,
       social: {
-        followers: context.auth.token.followers || []
+        followers: data.social.followers || []
       },
       userId: context.auth.uid,
       work: {
-        company: context.auth.token.company || null,
-        job: context.auth.token.job || null
+        company: data.work.company || null,
+        job: data.work.job || null
       }
     };
-    return admin.firestore().collection('usersUAT').add(account).then(ref => {
+    return admin.firestore().collection('usersUAT').doc(context.auth.uid).
+      set(account).then(ref => {
       console.log('DATABASE CHANGE: ', 'document: ' + ref.id
         + ' , added to collection: accounts');
       return {message: "Account successfully added!"};
@@ -192,44 +200,54 @@ exports.addEvent = functions.https.onCall((data, context) => {
     throw new functions.https.HttpsError('failed-precondition', 'The function must be called ' +
       'while authenticated.');
   } else {
+    var newEventRef = admin.firestore().collection('experiencesUAT').doc();
     var event = {
       attendees: {
-        values: context.auth.token.values || []
+        values: data.attendees.values || []
       },
       category: {
-        values: context.auth.token.categories || []
+        values: data.category.values || []
       },
       dates: {
-        values: context.auth.token.dates || []
+        values: data.dates.values || []
       },
-      description: context.auth.token.description || null,
-      experienceID: context.auth.token.experienceID || null,
+      links: {
+        values: data.dates.links || []
+      },
+      description: data.description || null,
+      experienceID: data.experienceID || null,
       host: {
-        address: context.auth.token.host_address || null,
-        name: context.auth.token.name || null,
-        phone: context.auth.token.phone || null,
-        postcode: context.auth.token.postcode || null,
-        web: context.auth.token.web || null,
+        address: data.host.address || null,
+        name: data.host.name || null,
+        phone: data.host.phone || null,
+        postcode: data.host.postcode || null,
+        city: data.host.city || null,
+        web: data.host.web || null
       },
       hostid: context.auth.uid,
       images: {
-        values: context.auth.token.images || []
+        values: data.images.values || []
       },
-      isActive: context.auth.token.isActive || true,
+      isActive: data.isActive || true,
       location: {
-        address: context.auth.token.location_address || null,
-        city: context.auth.token.city || null,
-        lat: context.auth.token.lat || null,
-        long: context.auth.token.long || null,
-        postcode: context.auth.token.postcode || null
+        address: data.location.address || null,
+        city: data.location.city || null,
+        lat: data.location.lat || null,
+        long: data.location.long || null,
+        postcode: data.location.postcode || null
       },
       prices: {
-        values: context.auth.token.prices || []
+        values: data.prices.values || []
+      },
+      bank_details: {
+        holder_name: data.bank_details.holder_name || null,
+        sort_code: data.bank_details.sort_code || null,
+        account_number: data.bank_details.account_number || null
       },
       reviews: {
-        values: context.auth.token.reviews || []
+        values: data.reviews.values || []
       },
-      title: context.auth.token.title || null
+      title: data.title || null
     };
     return admin.firestore().collection('experiencesUAT').add(event).then(ref => {
       console.log('DATABASE CHANGE: ', 'document: ' + ref.id
@@ -247,8 +265,33 @@ exports.getUserEvent = functions.https.onCall((data, context) => {
       'while authenticated.');
   } else {
     const uid = context.auth.uid;
-    return admin.firestore().collection('events').where('uid', '==', uid)
-      .get().then(snapshot => {
+    var docRef = admin.firestore().collection("experiencesUAT").doc(data.eid);
+    return admin.firestore().collection('experiencesUAT').doc(docRef).get().
+      then(snapshot => {
+        var event = null;
+        if (doc.exists) {
+          event = JSON.stringify(doc.data());
+          console.log("Event fetched successfully!", event);
+        } else {
+          console.log("No such document!");
+        }
+        return {event: event};
+      }).catch(err => {
+        console.log('Error getting documents', err);
+      });
+  }
+});
+
+exports.getUserEvents = functions.https.onCall((data, context) => {
+  if (!context.auth) {
+    // Throwing an HttpsError so that the client gets the error details.
+    console.log('User not authenticated!');
+    throw new functions.https.HttpsError('failed-precondition', 'The function must be called ' +
+      'while authenticated.');
+  } else {
+    const uid = context.auth.uid;
+    return admin.firestore().collection('experiencesUAT').
+      where('hostid', '==', uid).get().then(snapshot => {
         var events = [];
         snapshot.forEach(doc => {
           let event = JSON.stringify(doc.data());
