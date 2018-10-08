@@ -155,6 +155,19 @@ exports.addAccount = functions.https.onCall((data, context) => {
       social: {
         followers: data.social.followers || []
       },
+      host: {
+        address: data.host.address || null,
+        name: data.host.name || null,
+        phone: data.host.phone || null,
+        postcode: data.host.postcode || null,
+        city: data.host.city || null,
+        web: data.host.web || null
+      },
+      bank_details: {
+        holder_name: data.bank_details.holder_name || null,
+        sort_code: data.bank_details.sort_code || null,
+        account_number: data.bank_details.account_number || null
+      },
       userId: context.auth.uid,
       work: {
         company: data.work.company || null,
@@ -257,6 +270,71 @@ exports.addEvent = functions.https.onCall((data, context) => {
   }
 });
 
+exports.updateEvent = functions.https.onCall((data, context) => {
+  if (!context.auth) {
+    // Throwing an HttpsError so that the client gets the error details.
+    console.log('User not authenticated!');
+    throw new functions.https.HttpsError('failed-precondition', 'The function must be called ' +
+      'while authenticated.');
+  } else {
+    var event = data;
+    if (data.hostid !== context.auth.uid) {
+      console.log("Hostid and userId don't match.");
+      return;
+    }
+    admin.firestore().collection('experiencesUAT').doc(data.experienceID)
+      .set(data)
+    .then(doc => {
+      console.log('Event updated successfully: ', data.experienceID);
+      return;
+    }).catch(err => {
+      console.log('Error updating event', err);
+    });
+  }
+});
+
+exports.updateAccount = functions.https.onCall((data, context) => {
+  if (!context.auth) {
+    // Throwing an HttpsError so that the client gets the error details.
+    console.log('User not authenticated!');
+    throw new functions.https.HttpsError('failed-precondition', 'The function must be called ' +
+      'while authenticated.');
+  } else {
+    var account = data;
+    if (data.userId !== context.auth.uid) {
+      console.log("Hostid and userId don't match.");
+      return;
+    }
+    admin.firestore().collection('usersUAT').doc(data.userId)
+      .set(data)
+    .then(doc => {
+      console.log('Account updated successfully: ', data.userId);
+      return;
+    }).catch(err => {
+      console.log('Error updating account', err);
+    });
+  }
+});
+
+
+exports.setExperiencesID = functions.firestore
+    .document('experiencesUAT/{eventID}')
+    .onCreate((snap, context) => {
+      var newValue = snap.data();
+      // newValue.experienceID = context.params.eventID;
+      console.log('Experience ID set successfully: ', context.params.eventID);
+      return snap.ref.set({
+        experienceID: context.params.eventID
+      }, {merge: true});
+      // admin.firestore().collection('experiencesUAT').set(context.params.eventID)
+      // .then(doc => {
+      //   console.log('Experience ID set successfully: ', context.params.eventID);
+      //   return;
+      // }).catch(err => {
+      //   console.log('Error setting experience ID', err);
+      // });
+    });
+
 exports.getUserEvent = functions.https.onCall((data, context) => {
   if (!context.auth) {
     // Throwing an HttpsError so that the client gets the error details.
@@ -265,17 +343,17 @@ exports.getUserEvent = functions.https.onCall((data, context) => {
       'while authenticated.');
   } else {
     const uid = context.auth.uid;
-    var docRef = admin.firestore().collection("experiencesUAT").doc(data.eid);
-    return admin.firestore().collection('experiencesUAT').doc(docRef).get().
-      then(snapshot => {
+    return admin.firestore().collection('experiencesUAT').doc(data.eid).get().
+      then(doc => {
         var event = null;
         if (doc.exists) {
-          event = JSON.stringify(doc.data());
-          console.log("Event fetched successfully!", event);
+          event = doc.data();
+          console.log("Document data:", event);
         } else {
-          console.log("No such document!");
+            console.log("No such document!");
         }
-        return {event: event};
+        console.log('Events fetched successfully!');
+        return {event: JSON.stringify(event)};
       }).catch(err => {
         console.log('Error getting documents', err);
       });
@@ -299,7 +377,7 @@ exports.getUserEvents = functions.https.onCall((data, context) => {
           events.push(event);
         });
         console.log('All events fetched successfully!');
-        return {events: events};
+        return {events: JSON.stringify(events)};
       }).catch(err => {
         console.log('Error getting documents', err);
       });
@@ -314,18 +392,13 @@ exports.getUserAccount = functions.https.onCall((data, context) => {
       'while authenticated.');
   } else {
     const uid = context.auth.uid;
-    return admin.firestore().collection('account').where('uid', '==', uid)
-      .get().then(snapshot => {
-        var accounts = [];
-        snapshot.forEach(doc => {
-          let account = JSON.stringify(doc.data());
-          console.log(account);
-          accounts.push(account);
-        });
-        console.log('All accounts fetched successfully!');
-        return {accounts: accounts};
+    return admin.firestore().collection('usersUAT').doc(uid)
+      .get().then(doc => {
+        var account = doc.data();
+        console.log('Accounts fetched successfully!' + doc.data());
+        return {account: JSON.stringify(account)};
       }).catch(err => {
-        console.log('Error getting documents', err);
+        console.log('Error getting user account', err);
       });
   }
 });
